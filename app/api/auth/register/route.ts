@@ -28,7 +28,14 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ user }, { status: 201 });
-  } catch {
-    return serverError();
-  }
+} catch (error) {
+  console.error("REGISTER ERROR:", error);
+
+  return NextResponse.json(
+    {
+      error: String(error),
+    },
+    { status: 500 }
+  );
+}
 }
