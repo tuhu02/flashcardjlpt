@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String        @id @default(cuid())
+  name         String?
+  email        String        @unique
+  password     String?
+  createdAt    DateTime      @default(now())
+  collections  Collection[]
+  quizSessions QuizSession[]
+  kanjiStats   KanjiStat[]
+}
+
+model Collection {
+  id           String        @id @default(cuid())
+  userId       String
+  name         String
+  description  String?
+  jlptLevel    String?
+  createdAt    DateTime      @default(now())
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kanjis       Kanji[]
+  quizSessions QuizSession[]
+
+  @@index([userId])
+}
+
+model Kanji {
+  id           String       @id @default(cuid())
+  collectionId String
+  kanji        String
+  reading      String
+  meaning      String
+  category     String?
+  example      String?
+  createdAt    DateTime     @default(now())
+  collection   Collection   @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  quizResults  QuizResult[]
+  kanjiStats   KanjiStat[]
+
+  @@unique([collectionId, kanji])
+  @@index([collectionId])
+}
+
+model QuizSession {
+  id           String       @id @default(cuid())
+  userId       String
+  collectionId String
+  mode         String
+  total        Int
+  correct      Int
+  duration     Int
+  createdAt    DateTime     @default(now())
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collection   Collection   @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  results      QuizResult[]
+
+  @@index([userId])
+  @@index([collectionId])
+}
+
+model QuizResult {
+  id        String      @id @default(cuid())
+  sessionId String
+  kanjiId   String
+  isCorrect Boolean
+  skipped   Boolean     @default(false)
+  timeTaken Int
+  session   QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  kanji     Kanji       @relation(fields: [kanjiId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([kanjiId])
+}
+
+model KanjiStat {
+  id              String    @id @default(cuid())
+  userId          String
+  kanjiId         String
+  totalAttempts   Int       @default(0)
+  correctAttempts Int       @default(0)
+  lastPracticed   DateTime?
+  status          String    @default("Baru")
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kanji           Kanji     @relation(fields: [kanjiId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kanjiId])
+  @@index([userId])
+  @@index([kanjiId])
+}
