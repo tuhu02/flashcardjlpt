@@ -46,6 +46,11 @@ export default function CollectionDetailPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // State for editing collection name
+  const [editingName, setEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState("");
+  const [nameSaving, setNameSaving] = useState(false);
+
   async function loadCollection() {
     const res = await fetch(`/api/collections/${params.id}`);
     if (!res.ok) {
@@ -90,6 +95,41 @@ export default function CollectionDetailPage() {
     });
     setError("");
     setModalOpen(true);
+  }
+
+  function startEditingName() {
+    if (!collection) return;
+    setNameValue(collection.name);
+    setEditingName(true);
+  }
+
+  function cancelEditingName() {
+    setEditingName(false);
+    setNameValue("");
+  }
+
+  async function saveCollectionName() {
+    if (!collection || !nameValue.trim()) return;
+    setNameSaving(true);
+
+    try {
+      const res = await fetch(`/api/collections/${params.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: nameValue.trim(),
+          description: collection.description ?? "",
+          jlptLevel: collection.jlptLevel ?? "",
+        }),
+      });
+
+      if (res.ok) {
+        setEditingName(false);
+        loadCollection();
+      }
+    } finally {
+      setNameSaving(false);
+    }
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -160,7 +200,42 @@ export default function CollectionDetailPage() {
         <Link href="/collections" className="text-sm text-red-700 hover:underline">
           ← Kembali ke koleksi
         </Link>
-        <h1 className="mt-2 text-3xl font-bold">{collection.name}</h1>
+        {editingName ? (
+          <div className="mt-2 flex items-center gap-2">
+            <input
+              type="text"
+              value={nameValue}
+              onChange={(e) => setNameValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") saveCollectionName();
+                if (e.key === "Escape") cancelEditingName();
+              }}
+              autoFocus
+              className="w-full max-w-md rounded-lg border border-stone-300 px-3 py-1.5 text-2xl font-bold text-stone-900 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200"
+            />
+            <Button size="sm" onClick={saveCollectionName} disabled={nameSaving}>
+              {nameSaving ? "..." : "Simpan"}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={cancelEditingName}>
+              Batal
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-2 flex items-center gap-2">
+            <h1 className="text-3xl font-bold">{collection.name}</h1>
+            <button
+              type="button"
+              onClick={startEditingName}
+              className="rounded-lg p-1.5 text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700"
+              title="Edit nama koleksi"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                <path d="m15 5 4 4" />
+              </svg>
+            </button>
+          </div>
+        )}
         {collection.description ? (
           <p className="mt-1 text-stone-600">{collection.description}</p>
         ) : null}
