@@ -7,6 +7,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { JapaneseInput } from "@/components/ui/japanese-input";
 import { Modal } from "@/components/ui/modal";
 
 type Kanji = {
@@ -259,10 +260,10 @@ export default function CollectionDetailPage() {
             onChange={(e) => setForm({ ...form, kanji: e.target.value })}
             required
           />
-          <Input
+          <JapaneseInput
             label="Cara Baca"
             value={form.reading}
-            onChange={(e) => setForm({ ...form, reading: e.target.value })}
+            onChange={(val) => setForm({ ...form, reading: val })}
             required
           />
           <Input
