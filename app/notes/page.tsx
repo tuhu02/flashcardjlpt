@@ -1,15 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { JapaneseInput } from "@/components/ui/japanese-input";
-import { JapaneseTextarea } from "@/components/ui/japanese-textarea";
-import { RichTextarea } from "@/components/ui/rich-textarea";
-import { Modal } from "@/components/ui/modal";
 import { renderMarkdown } from "@/lib/markdown";
 import { NOTE_CATEGORIES } from "@/lib/validations";
 
@@ -42,23 +39,13 @@ const CATEGORY_STYLES: Record<string, string> = {
 const ALL_FILTERS = ["Semua", ...NOTE_CATEGORIES] as const;
 
 export default function NotesPage() {
+  const router = useRouter();
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("Semua");
   const [selected, setSelected] = useState<string[]>([]);
   const [expanded, setExpanded] = useState<string[]>([]);
-
-  // Modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<Note | null>(null);
-  const [form, setForm] = useState({
-    title: "",
-    content: "",
-    explanation: "",
-    category: "Umum" as string,
-  });
-  const [error, setError] = useState("");
 
   async function loadNotes() {
     const url =
@@ -86,51 +73,6 @@ export default function NotesPage() {
         n.explanation.toLowerCase().includes(q),
     );
   }, [notes, search]);
-
-  function openCreate() {
-    setEditing(null);
-    setForm({ title: "", content: "", explanation: "", category: "Umum" });
-    setError("");
-    setModalOpen(true);
-  }
-
-  function openEdit(note: Note) {
-    setEditing(note);
-    setForm({
-      title: note.title,
-      content: note.content,
-      explanation: note.explanation,
-      category: note.category,
-    });
-    setError("");
-    setModalOpen(true);
-  }
-
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-
-    const res = editing
-      ? await fetch(`/api/notes/${editing.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        })
-      : await fetch("/api/notes", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
-        });
-
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Gagal menyimpan catatan");
-      return;
-    }
-
-    setModalOpen(false);
-    loadNotes();
-  }
 
   async function handleDelete(id: string) {
     if (!confirm("Hapus catatan ini?")) return;
@@ -178,7 +120,9 @@ export default function NotesPage() {
               Hapus ({selected.length})
             </Button>
           ) : null}
-          <Button onClick={openCreate}>+ Catatan Baru</Button>
+          <Button onClick={() => router.push("/notes/create")}>
+            + Catatan Baru
+          </Button>
         </div>
       </div>
 
@@ -222,7 +166,10 @@ export default function NotesPage() {
           <p className="mt-2 text-stone-500">
             Mulai catat kalimat, partikel, atau tata bahasa yang kamu pelajari.
           </p>
-          <Button className="mt-4" onClick={openCreate}>
+          <Button
+            className="mt-4"
+            onClick={() => router.push("/notes/create")}
+          >
             Buat Catatan
           </Button>
         </Card>
@@ -258,7 +205,9 @@ export default function NotesPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => openEdit(note)}
+                        onClick={() =>
+                          router.push(`/notes/${note.id}/edit`)
+                        }
                       >
                         Edit
                       </Button>
@@ -332,67 +281,6 @@ export default function NotesPage() {
           })}
         </div>
       )}
-
-      {/* Create/Edit Modal */}
-      <Modal
-        open={modalOpen}
-        title={editing ? "Edit Catatan" : "Catatan Baru"}
-        onClose={() => setModalOpen(false)}
-      >
-        <form onSubmit={handleSave} className="space-y-4">
-          {/* Category */}
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-stone-700">
-              Kategori
-            </label>
-            <select
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
-              className="w-full rounded-lg border border-stone-200 px-3 py-2"
-            >
-              {NOTE_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Title — with Japanese input */}
-          <JapaneseInput
-            label="Judul"
-            value={form.title}
-            onChange={(val) => setForm({ ...form, title: val })}
-            placeholder="Misal: Partikel は, 今日は天気がいい..."
-            required
-          />
-
-          {/* Content — Japanese textarea */}
-          <JapaneseTextarea
-            label="Konten"
-            value={form.content}
-            onChange={(val) => setForm({ ...form, content: val })}
-            placeholder="Tulis kalimat, partikel, atau kanji yang ingin dicatat..."
-            rows={3}
-            required
-          />
-
-          {/* Explanation — Rich textarea with formatting */}
-          <RichTextarea
-            label="Penjelasan"
-            value={form.explanation}
-            onChange={(val) => setForm({ ...form, explanation: val })}
-            placeholder="Tulis penjelasan... (gunakan **bold**, *italic*, - list, # heading)"
-            rows={6}
-            required
-          />
-
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-          <Button type="submit" className="w-full">
-            Simpan
-          </Button>
-        </form>
-      </Modal>
     </AppShell>
   );
 }

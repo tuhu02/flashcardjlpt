@@ -4,6 +4,32 @@ import { prisma } from "@/lib/prisma";
 import { badRequest, notFound, serverError, unauthorized } from "@/lib/api-utils";
 import { noteSchema } from "@/lib/validations";
 
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return unauthorized();
+  }
+
+  try {
+    const { id } = await params;
+
+    const note = await prisma.note.findFirst({
+      where: { id, userId: session.user.id },
+    });
+
+    if (!note) {
+      return notFound("Catatan tidak ditemukan");
+    }
+
+    return NextResponse.json(note);
+  } catch {
+    return serverError();
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },

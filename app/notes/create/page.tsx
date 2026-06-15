@@ -1,0 +1,234 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { AppShell } from "@/components/layout/app-shell";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { JapaneseInput } from "@/components/ui/japanese-input";
+import { JapaneseTextarea } from "@/components/ui/japanese-textarea";
+import { RichTextarea } from "@/components/ui/rich-textarea";
+import { renderMarkdown } from "@/lib/markdown";
+import { NOTE_CATEGORIES } from "@/lib/validations";
+
+export default function CreateNotePage() {
+  const router = useRouter();
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    content: "",
+    explanation: "",
+    category: "Umum" as string,
+  });
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSaving(true);
+
+    try {
+      const res = await fetch("/api/notes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Gagal menyimpan catatan");
+        setSaving(false);
+        return;
+      }
+
+      router.push("/notes");
+    } catch {
+      setError("Terjadi kesalahan jaringan");
+      setSaving(false);
+    }
+  }
+
+  return (
+    <AppShell>
+      {/* Header */}
+      <div className="mb-8">
+        <button
+          type="button"
+          onClick={() => router.push("/notes")}
+          className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-stone-500 transition-colors hover:text-stone-800"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          Kembali ke Catatan
+        </button>
+        <h1 className="text-3xl font-bold text-stone-900">Catatan Baru</h1>
+        <p className="mt-1 text-stone-600">
+          Tulis catatan belajar kamu — kalimat, partikel, tata bahasa, atau
+          apapun.
+        </p>
+      </div>
+
+      <div className="grid gap-8 lg:grid-cols-5">
+        {/* Form — takes more space */}
+        <Card className="lg:col-span-3">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Category */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-stone-700">
+                Kategori
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {NOTE_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setForm({ ...form, category: cat })}
+                    className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
+                      form.category === cat
+                        ? "bg-red-700 text-white shadow-sm"
+                        : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Title — with Japanese input */}
+            <JapaneseInput
+              label="Judul"
+              value={form.title}
+              onChange={(val) => setForm({ ...form, title: val })}
+              placeholder="Misal: Partikel は, 今日は天気がいい..."
+              required
+            />
+
+            {/* Content — Japanese textarea */}
+            <JapaneseTextarea
+              label="Konten"
+              value={form.content}
+              onChange={(val) => setForm({ ...form, content: val })}
+              placeholder="Tulis kalimat, partikel, atau kanji yang ingin dicatat..."
+              rows={5}
+              required
+            />
+
+            {/* Explanation — Rich textarea with formatting */}
+            <RichTextarea
+              label="Penjelasan"
+              value={form.explanation}
+              onChange={(val) => setForm({ ...form, explanation: val })}
+              placeholder="Tulis penjelasan... (gunakan **bold**, *italic*, - list, # heading)"
+              rows={10}
+              required
+            />
+
+            {error ? (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            ) : null}
+
+            <div className="flex items-center gap-3 border-t border-stone-100 pt-4">
+              <Button type="submit" disabled={saving} size="lg">
+                {saving ? "Menyimpan..." : "Simpan Catatan"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => router.push("/notes")}
+              >
+                Batal
+              </Button>
+            </div>
+          </form>
+        </Card>
+
+        {/* Live Preview sidebar */}
+        <div className="lg:col-span-2">
+          <div className="sticky top-24">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-stone-400">
+                Preview
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowPreview(!showPreview)}
+                className={`rounded-lg px-3 py-1 text-xs font-medium transition-colors ${
+                  showPreview
+                    ? "bg-red-50 text-red-700"
+                    : "bg-stone-100 text-stone-500 hover:bg-stone-200"
+                }`}
+              >
+                {showPreview ? "Sembunyikan" : "Tampilkan"}
+              </button>
+            </div>
+
+            {showPreview ? (
+              <Card className="space-y-4">
+                {/* Category */}
+                <span className="inline-block rounded-full bg-stone-100 px-3 py-1 text-xs font-semibold text-stone-600">
+                  {form.category}
+                </span>
+
+                {/* Title */}
+                {form.title ? (
+                  <h3 className="font-jp text-xl font-bold text-stone-900">
+                    {form.title}
+                  </h3>
+                ) : (
+                  <p className="text-stone-300 italic">Judul...</p>
+                )}
+
+                {/* Content */}
+                {form.content ? (
+                  <div className="font-jp whitespace-pre-wrap text-lg text-stone-800">
+                    {form.content}
+                  </div>
+                ) : (
+                  <p className="text-stone-300 italic">Konten...</p>
+                )}
+
+                {/* Explanation */}
+                {form.explanation ? (
+                  <div className="border-t border-stone-100 pt-3">
+                    <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-stone-400">
+                      Penjelasan
+                    </p>
+                    <div
+                      className="prose-sm text-stone-700"
+                      dangerouslySetInnerHTML={{
+                        __html: renderMarkdown(form.explanation),
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <p className="text-stone-300 italic">Penjelasan...</p>
+                )}
+              </Card>
+            ) : (
+              <Card className="text-center text-stone-400">
+                <p className="text-sm">
+                  Klik &quot;Tampilkan&quot; untuk melihat preview catatan kamu.
+                </p>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}
