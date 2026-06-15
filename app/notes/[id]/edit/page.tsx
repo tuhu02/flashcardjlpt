@@ -173,6 +173,7 @@ export default function EditNotePage() {
               value={form.title}
               onChange={(val) => setForm({ ...form, title: val })}
               placeholder="Misal: Partikel は, 今日は天気がいい..."
+              defaultMode="romaji"
               required
             />
 
@@ -183,6 +184,7 @@ export default function EditNotePage() {
               onChange={(val) => setForm({ ...form, content: val })}
               placeholder="Tulis kalimat, partikel, atau kanji yang ingin dicatat..."
               rows={5}
+              defaultMode="romaji"
               required
             />
 

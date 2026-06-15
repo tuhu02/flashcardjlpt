@@ -16,6 +16,7 @@ type JapaneseTextareaProps = {
   required?: boolean;
   id?: string;
   rows?: number;
+  defaultMode?: KanaMode;
 };
 
 /**
@@ -32,8 +33,9 @@ export function JapaneseTextarea({
   required,
   id,
   rows = 3,
+  defaultMode = "hiragana",
 }: JapaneseTextareaProps) {
-  const [mode, setMode] = useState<KanaMode>("hiragana");
+  const [mode, setMode] = useState<KanaMode>(defaultMode);
   const [rawInput, setRawInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");

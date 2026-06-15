@@ -15,6 +15,7 @@ type JapaneseInputProps = {
   className?: string;
   required?: boolean;
   id?: string;
+  defaultMode?: KanaMode;
 };
 
 /**
@@ -37,8 +38,9 @@ export function JapaneseInput({
   className,
   required,
   id,
+  defaultMode = "hiragana",
 }: JapaneseInputProps) {
-  const [mode, setMode] = useState<KanaMode>("hiragana");
+  const [mode, setMode] = useState<KanaMode>(defaultMode);
   // We store the raw romaji input so we can convert it properly.
   // When mode is romaji, rawInput is not used.
   const [rawInput, setRawInput] = useState("");
