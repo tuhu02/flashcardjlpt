@@ -64,6 +64,22 @@ export const quizSubmitSchema = z.object({
   ),
 });
 
+export const NOTE_CATEGORIES = [
+  "Kalimat",
+  "Partikel",
+  "Kanji",
+  "Tata Bahasa",
+  "Umum",
+] as const;
+
+export const noteSchema = z.object({
+  title: z.string().min(1, "Judul wajib diisi"),
+  content: z.string().min(1, "Konten wajib diisi"),
+  explanation: z.string().min(1, "Penjelasan wajib diisi"),
+  category: z.enum(NOTE_CATEGORIES).default("Umum"),
+});
+
 export type KanjiInput = z.infer<typeof kanjiSchema>;
 export type CollectionInput = z.infer<typeof collectionSchema>;
 export type QuizSetupInput = z.infer<typeof quizSetupSchema>;
+export type NoteInput = z.infer<typeof noteSchema>;

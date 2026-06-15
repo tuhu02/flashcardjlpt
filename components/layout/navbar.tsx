@@ -10,6 +10,7 @@ const links = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/collections", label: "Koleksi" },
   { href: "/quiz/setup", label: "Kuis" },
+  { href: "/notes", label: "Catatan" },
   { href: "/stats", label: "Statistik" },
   { href: "/settings", label: "Pengaturan" },
 ];

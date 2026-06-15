@@ -16,6 +16,7 @@ model User {
   collections  Collection[]
   quizSessions QuizSession[]
   kanjiStats   KanjiStat[]
+  notes        Note[]
 }
 
 model Collection {
@@ -94,4 +95,19 @@ model KanjiStat {
   @@unique([userId, kanjiId])
   @@index([userId])
   @@index([kanjiId])
+}
+
+model Note {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  content     String
+  explanation String
+  category    String   @default("Umum")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([category])
 }
