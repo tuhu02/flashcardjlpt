@@ -46,6 +46,11 @@ export default function CollectionDetailPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
+  // Import CSV state
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importMessage, setImportMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   // State for editing collection name
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState("");
@@ -186,6 +191,43 @@ export default function CollectionDetailPage() {
     );
   }
 
+  async function handleImportCsv(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportLoading(true);
+    setImportMessage(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("collectionId", params.id);
+
+    try {
+      const res = await fetch("/api/kanjis/import", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      e.target.value = "";
+
+      if (!res.ok) {
+        setImportMessage({ type: "error", text: data.error ?? "Import gagal" });
+        return;
+      }
+
+      setImportMessage({
+        type: "success",
+        text: `Berhasil import ${data.imported} kanji (${data.skipped} dilewati karena duplikat).`,
+      });
+      loadCollection();
+    } catch {
+      setImportMessage({ type: "error", text: "Terjadi kesalahan saat import" });
+    } finally {
+      setImportLoading(false);
+    }
+  }
+
   if (loading || !collection) {
     return (
       <AppShell>
@@ -254,6 +296,20 @@ export default function CollectionDetailPage() {
               Hapus ({selected.length})
             </Button>
           ) : null}
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setImportMessage(null);
+              setImportModalOpen(true);
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" x2="12" y1="15" y2="3" />
+            </svg>
+            Import CSV
+          </Button>
           <Button onClick={openCreate}>+ Tambah Kanji</Button>
         </div>
       </div>
@@ -362,6 +418,66 @@ export default function CollectionDetailPage() {
             Simpan
           </Button>
         </form>
+      </Modal>
+
+      {/* Import CSV Modal */}
+      <Modal
+        open={importModalOpen}
+        title="Import Kanji dari CSV"
+        onClose={() => setImportModalOpen(false)}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-stone-600">
+            Upload file CSV dengan format:{" "}
+            <code className="rounded bg-stone-100 px-1.5 py-0.5 text-xs font-mono">
+              kanji, cara_baca, arti, level, kelompok
+            </code>
+          </p>
+
+          <div className="rounded-xl border border-stone-200 bg-stone-50 p-4">
+            <p className="mb-2 text-xs font-medium text-stone-500">Contoh Template CSV:</p>
+            <pre className="overflow-x-auto text-xs text-stone-700">
+{`kanji,cara_baca,arti,level,kelompok
+日,にち / ひ,Matahari / Hari,N5,Waktu
+月,つき,Bulan,N5,Waktu
+火,ひ,Api,N5,Alam
+水,みず,Air,N5,Alam`}
+            </pre>
+          </div>
+
+          <div className="flex flex-col items-center gap-3 rounded-xl border-2 border-dashed border-stone-200 bg-stone-50/50 p-6 transition-colors hover:border-red-300 hover:bg-red-50/30">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-stone-400">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" x2="12" y1="15" y2="3" />
+            </svg>
+            <label className="cursor-pointer">
+              <span className="rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-800">
+                {importLoading ? "Mengimport..." : "Pilih File CSV"}
+              </span>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleImportCsv}
+                disabled={importLoading}
+                className="hidden"
+              />
+            </label>
+            <p className="text-xs text-stone-400">Hanya file .csv yang didukung</p>
+          </div>
+
+          {importMessage ? (
+            <div
+              className={`rounded-lg p-3 text-sm ${
+                importMessage.type === "success"
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
+              }`}
+            >
+              {importMessage.text}
+            </div>
+          ) : null}
+        </div>
       </Modal>
     </AppShell>
   );
