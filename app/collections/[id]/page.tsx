@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { JapaneseInput } from "@/components/ui/japanese-input";
+import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
 import { Modal } from "@/components/ui/modal";
 import { KanjiFlipCard } from "@/components/collections/kanji-flip-card";
 
@@ -56,6 +57,10 @@ export default function CollectionDetailPage() {
   const [editingName, setEditingName] = useState(false);
   const [nameValue, setNameValue] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   async function loadCollection() {
     const res = await fetch(`/api/collections/${params.id}`);
@@ -175,6 +180,29 @@ export default function CollectionDetailPage() {
     loadCollection();
   }
 
+  async function handleDeleteCollection() {
+    setDeleteLoading(true);
+    setDeleteError("");
+
+    try {
+      const res = await fetch(`/api/collections/${params.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setDeleteError(data.error ?? "Gagal menghapus koleksi");
+        return;
+      }
+
+      router.push("/collections");
+    } catch {
+      setDeleteError("Terjadi kesalahan saat menghapus koleksi");
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
+
   async function handleBulkDelete() {
     if (!selected.length || !confirm(`Hapus ${selected.length} kanji?`)) return;
     await fetch("/api/kanjis", {
@@ -282,6 +310,18 @@ export default function CollectionDetailPage() {
         {collection.description ? (
           <p className="mt-1 text-stone-600">{collection.description}</p>
         ) : null}
+        <div className="mt-4">
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => {
+              setDeleteError("");
+              setDeleteModalOpen(true);
+            }}
+          >
+            Hapus Koleksi
+          </Button>
+        </div>
       </div>
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -458,6 +498,24 @@ export default function CollectionDetailPage() {
           ) : null}
         </div>
       </Modal>
+
+      <ConfirmDeleteModal
+        open={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleDeleteCollection}
+        title="Hapus Koleksi"
+        description={
+          <>
+            Anda akan menghapus koleksi{" "}
+            <span className="font-semibold text-stone-900">{collection.name}</span>{" "}
+            beserta {collection.kanjis.length} kanji di dalamnya.
+          </>
+        }
+        confirmText={collection.name}
+        confirmButtonLabel="Hapus Koleksi"
+        loading={deleteLoading}
+        error={deleteError}
+      />
     </AppShell>
   );
 }

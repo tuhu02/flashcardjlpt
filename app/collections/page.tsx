@@ -6,6 +6,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardTitle } from "@/components/ui/card";
+import { ConfirmDeleteModal } from "@/components/ui/confirm-delete-modal";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { JLPT_LEVELS } from "@/lib/validations";
@@ -26,6 +27,10 @@ export default function CollectionsPage() {
   const [description, setDescription] = useState("");
   const [jlptLevel, setJlptLevel] = useState("");
   const [error, setError] = useState("");
+
+  const [deleting, setDeleting] = useState<Collection | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   async function loadCollections() {
     const res = await fetch("/api/collections");
@@ -61,6 +66,32 @@ export default function CollectionsPage() {
     loadCollections();
   }
 
+  async function handleDeleteCollection() {
+    if (!deleting) return;
+
+    setDeleteLoading(true);
+    setDeleteError("");
+
+    try {
+      const res = await fetch(`/api/collections/${deleting.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        setDeleteError(data.error ?? "Gagal menghapus koleksi");
+        return;
+      }
+
+      setDeleting(null);
+      loadCollections();
+    } catch {
+      setDeleteError("Terjadi kesalahan saat menghapus koleksi");
+    } finally {
+      setDeleteLoading(false);
+    }
+  }
+
   return (
     <AppShell>
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -86,8 +117,8 @@ export default function CollectionsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {collections.map((collection) => (
-            <Link key={collection.id} href={`/collections/${collection.id}`}>
-              <Card className="h-full transition-shadow hover:shadow-md">
+            <Card key={collection.id} className="flex h-full flex-col transition-shadow hover:shadow-md">
+              <Link href={`/collections/${collection.id}`} className="flex-1">
                 <div className="flex items-start justify-between gap-2">
                   <CardTitle>{collection.name}</CardTitle>
                   {collection.jlptLevel ? (
@@ -102,8 +133,21 @@ export default function CollectionsPage() {
                 <p className="mt-4 text-sm font-medium text-stone-700">
                   {collection._count.kanjis} kanji
                 </p>
-              </Card>
-            </Link>
+              </Link>
+              <div className="mt-4 border-t border-stone-100 pt-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                  onClick={() => {
+                    setDeleteError("");
+                    setDeleting(collection);
+                  }}
+                >
+                  Hapus Koleksi
+                </Button>
+              </div>
+            </Card>
           ))}
         </div>
       )}
@@ -137,6 +181,26 @@ export default function CollectionsPage() {
           </Button>
         </form>
       </Modal>
+
+      <ConfirmDeleteModal
+        open={deleting !== null}
+        onClose={() => setDeleting(null)}
+        onConfirm={handleDeleteCollection}
+        title="Hapus Koleksi"
+        description={
+          deleting ? (
+            <>
+              Anda akan menghapus koleksi{" "}
+              <span className="font-semibold text-stone-900">{deleting.name}</span>{" "}
+              beserta {deleting._count.kanjis} kanji di dalamnya.
+            </>
+          ) : null
+        }
+        confirmText={deleting?.name ?? ""}
+        confirmButtonLabel="Hapus Koleksi"
+        loading={deleteLoading}
+        error={deleteError}
+      />
     </AppShell>
   );
 }
