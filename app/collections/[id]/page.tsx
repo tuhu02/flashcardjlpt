@@ -9,6 +9,7 @@ import { Card, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { JapaneseInput } from "@/components/ui/japanese-input";
 import { Modal } from "@/components/ui/modal";
+import { KanjiFlipCard } from "@/components/collections/kanji-flip-card";
 
 type Kanji = {
   id: string;
@@ -322,54 +323,32 @@ export default function CollectionDetailPage() {
           </p>
         </Card>
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-stone-200 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-stone-100 bg-stone-50">
-              <tr>
-                <th className="p-3">
-                  <input
-                    type="checkbox"
-                    checked={selected.length === filtered.length}
-                    onChange={(e) =>
-                      setSelected(e.target.checked ? filtered.map((k) => k.id) : [])
-                    }
-                  />
-                </th>
-                <th className="p-3">Kanji</th>
-                <th className="p-3">Cara Baca</th>
-                <th className="p-3">Arti</th>
-                <th className="p-3">Kelompok</th>
-                <th className="p-3">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((kanji) => (
-                <tr key={kanji.id} className="border-b border-stone-50">
-                  <td className="p-3">
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(kanji.id)}
-                      onChange={() => toggleSelect(kanji.id)}
-                    />
-                  </td>
-                  <td className="p-3 font-jp text-2xl font-bold">{kanji.kanji}</td>
-                  <td className="p-3">{kanji.reading}</td>
-                  <td className="p-3">{kanji.meaning}</td>
-                  <td className="p-3 text-stone-500">{kanji.category ?? "—"}</td>
-                  <td className="p-3">
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(kanji)}>
-                        Edit
-                      </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDelete(kanji.id)}>
-                        Hapus
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div>
+          <label className="mb-4 flex items-center gap-2 text-sm text-stone-500">
+            <input
+              type="checkbox"
+              checked={selected.length === filtered.length && filtered.length > 0}
+              onChange={(e) =>
+                setSelected(e.target.checked ? filtered.map((k) => k.id) : [])
+              }
+              className="h-4 w-4 accent-red-700"
+            />
+            Pilih semua ({filtered.length} kanji)
+          </label>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {filtered.map((kanji) => (
+              <KanjiFlipCard
+                key={kanji.id}
+                kanji={kanji.kanji}
+                reading={kanji.reading}
+                meaning={kanji.meaning}
+                selected={selected.includes(kanji.id)}
+                onToggleSelect={() => toggleSelect(kanji.id)}
+                onEdit={() => openEdit(kanji)}
+                onDelete={() => handleDelete(kanji.id)}
+              />
+            ))}
+          </div>
         </div>
       )}
 
